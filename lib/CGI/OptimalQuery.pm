@@ -8,7 +8,7 @@ use CGI();
 BEGIN {
     use Exporter ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-    $VERSION     = '0.01';
+    $VERSION     = '0.03';
     @ISA         = qw(Exporter);
     #Give a hoot don't pollute, do not export more than needed by default
     @EXPORT      = qw();
@@ -57,7 +57,7 @@ sub new {
   $$schema{error_handler}  ||= sub { print STDERR @_; 0; };
 
   # find module & class
-  my $module = $$schema{q}->param('module') || $default_module;
+  my $module = $$schema{q}->param('module') || $$schema{module} || $default_module;
   my $class = $$schema{modules}{$module} || $modules{$module};
 
   # dynamically load class
@@ -120,7 +120,14 @@ sub get_saved_search_list {
     $buffer .= "<tr><td class='OQ_ss_query_title'><a href=# onclick=\"opwin('$uri?OQLoadSavedSearch=$id".$stateArgs."#OQtop','OQLoadSavedSearch$id','resizable,scrollbars',1024,768); return false;\">".CGI::escapeHTML($user_title)."</a></td><td class='OQ_ss_cmds'><button onclick=\"this.form.OQ_remove_saved_search_id.value = '$id'; this.form.submit();\" type='button'>delete</button></td></tr>";
   }
   $sth->finish();
-  $buffer .= "</table><input type='hidden' name='OQ_remove_saved_search_id' />" if $buffer;
+  $buffer .= "</table><input type='hidden' name='OQ_remove_saved_search_id' />
+<script>
+if (! window.opwin) {
+  window.opwin = function(lnk,target,opts) {
+    window.open(lnk,target,opts);
+  };
+}
+</script>" if $buffer;
   return $buffer;
 }
 
@@ -177,6 +184,8 @@ CGI::OptimalQuery - dynamic SQL query viewer
 Developer describes environment, output options, and database query; CGI::OptimalQuery provides user with a web interface to view, filter, sort, and export the data.
 
 Sounds simple, but CGI::OptimalQuery does not write the SQL for the developer. It is only responsible for gluing the appropriate pieces of SQL together to form an optimized SQL query, and outputing the results in a format the user chooses.
+
+This module has been tested for SQLite, mysql, postgres, Microsoft SQL Server, and Oracle.
 
 The important elements the developer describes are what fields (select elements) the user can see and what data sets (join elements) those fields come from. Each select and join element can depend upon joins. For every Optimal Query there is one driving data set. The driving set does not depend on other data sets. For every row in the driving data set there can only be one corresponding row when joining the driving data set to other joins described in the joins configuration hash reference. This allows Optimal Query to optimize SQL and only include the appropriate joins when the user has selected a column from one of those joins. For example: If there are employee and department tables and the user only wants to see employee fields (not department fields) then Optimal Query will not join in the department table.
 

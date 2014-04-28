@@ -33,6 +33,7 @@ sub new {
 
   # if any fields are passed into on_select, ensure they are always selected
   my $on_select = $$o{q}->param('on_select');
+  $on_select =~ s/\~.*//; # remove options if exists
   if ($on_select =~ /[^\,]+\,(.+)/) {
     my @fields = split /\,/, $1;
     for (@fields) {
@@ -85,21 +86,5 @@ sub new {
 
   return $o;
 }
-
-#-------------- ACCESSORS --------------------------------------------------
-sub sth              { $_[0]{sth} }
-sub get_count        { $_[0]{sth}->count() }
-sub get_rows_page    { $_[0]{rows_page} }
-sub get_current_page { $_[0]{page}      }
-sub get_lo_rec       { $_[0]{limit}[0]  }
-sub get_hi_rec       { $_[0]{limit}[1]  }
-sub get_num_pages    { $_[0]{num_pages} }
-sub get_title        { $_[0]{schema}{title} }
-sub get_filter       { $_[0]{sth}->filter_descr() }
-sub get_sort         { $_[0]{sth}->sort_descr() }
-sub get_query        { $_[0]{query}     }
-sub get_nice_name    { $_[0]{schema}{select}{$_[1]}[2] }
-sub get_num_usersel_cols { scalar @{$_[0]{show}} }
-sub get_usersel_cols { $_[0]{show} }
 
 1;

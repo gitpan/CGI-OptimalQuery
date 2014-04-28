@@ -1,16 +1,19 @@
 #!/usr/bin/perl
 
 use strict;
+use FindBin qw($Bin);
+use lib "$Bin/../../lib"; # include project lib
+
 use DBI();
 use CGI::OptimalQuery();
-use FindBin qw($Bin);
 
 chdir "$Bin/..";
 
-my $dbh = DBI->connect("dbi:SQLite:dbname=test_data.db","","");
+my $dbh = DBI->connect("dbi:SQLite:dbname=db/dat.db","","");
 
 my %schema = (
   'dbh' => $dbh,
+  'savedSearchUserID' => 12345,
   'title' => 'The People',
   'select' => {
     'U_ID' => ['person', 'person.id', 'SYS ID', { always_select => 1 }],

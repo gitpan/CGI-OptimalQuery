@@ -53,7 +53,7 @@ form.OQform {
 .OQFilterDescr:hover td {
   background-color: #ffd;
 }
-.OQinfo td.label {
+.OQinfo td.OQlabel {
   width: 3em;
   text-align: center;
   padding-left: 0;
@@ -82,7 +82,7 @@ form.OQform {
   display: none;
 }
 
-.OQAddColumnsPanel, .OQFilterPanel, .OQToolsPanel, .OQHelpPanel {
+.OQAddColumnsPanel, .OQFilterPanel, .OQHelpPanel {
   display: none;
   position: absolute;
   top: 80px;
@@ -120,43 +120,167 @@ form.OQform {
   right: 10px;
 }
 
-
 .OQToolsPanel {
-  left: auto;
-  top: 30px;
-  width: 18em;
-  background-color: #ddd;
+  display: none;
+  position: relative;
+  border: 2px solid #ccc;
+  padding: 20px;
+  background-color: #eee;
+  max-width: 940px;
+  margin: 20px auto;
 }
-.OQToolsPanel button {
-  font-size: 1.2em;
+.OQToolsPanel h2 {
+  margin: 0;
+  color: #444;
+  font-weight: bold;
 }
-.OQDownloadCSV { 
-  margin-left: 1em;
+.OQToolsPanel h4 {
+  text-align: center;
+  margin: 0;
+  text-decoration: underline;
 }
-.OQToolsPanel fieldset {
-  margin: .5em;
-  border: 1px solid #aaa;
+
+.OQautoactionform a {
+  display: block;
+  padding: 6px;
+  text-decoration: none;
+}
+.OQautoactionform a:hover {
+  background-color: #ffd;
+}
+
+.OQemailmergetool {
   overflow: hidden;
 }
-.OQToolsPanel legend {
-  font-weight: bold;
-  color: #444;
-}
-.OQSaveReportBut {
-  float: right;
-}
-.OQToolsCancelBut {
-  margin: 1em;
-}
-.OQLoadSavedSearch {
+.OQemailmergeform, .OQemailmergetemplatevars {
   float: left;
-  clear: both;
-}
-.OQDeleteSavedSearchBut {
-  float: right;
   position: relative;
-  top: -10px;
+  max-width: 35em;
 }
+
+.OQemailmergeform p {
+  margin: 10px;
+}
+
+.OQemailmergetemplatevars  {
+  padding: 6px;
+  border: 1px solid #aaa;
+  background-color: #fff;
+  margin-top: 4px;
+  margin-top: 4px;
+  border-radius: 2px;
+}
+ 
+.OQemailmergetemplatevars .OQTemplateVar {
+  cursor: pointer;
+  font-size: .9em;
+  padding: 6px;
+}
+
+.OQemailmergemsgs {
+  max-height: 30em;
+  overflow: auto;
+}
+
+.OQemailmergeview > * {
+  margin: 10px;
+}
+
+.oqemailmergepreviewbody {
+  white-space: pre;
+}
+
+
+.OQemailmergeform p > input {
+  width: 94%;
+}
+
+.OQnotify {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 300px;
+  height: 100px;
+  padding: 20px;
+  background-color: #222;
+  color: white;
+}
+
+.OQnotifyOkBut {
+  position: absolute;
+  bottom: 10px;
+  left: 45%;
+}
+
+.OQmsg {
+  height: 60px;
+  overflow: auto;
+}
+
+.OQemailmergetemplatevarlist {
+  position: relative;
+  max-height: 32em;
+  overflow: auto;
+  min-width: 16em;
+}
+
+.OQemailmergeform p > label {
+  font-weight: bold;
+  color: #222;
+  margin: 4px;
+}
+.OQemailmergeform small {
+  color: #555;
+  margin-left: 6px;
+}
+
+.OQemailmergeform textarea {
+  height: 4em;
+  width: 94%;
+}
+
+.OQToolContent {
+  margin-left: 16px;
+}
+
+/*
+.OQToolExpander.opened:before,
+.OQToolExpander:hover:before {
+  content: '\00BB';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+}
+.OQToolExpander {
+  cursor: pointer;
+  padding: 10px;
+  padding-left: 16px;
+  margin: 0;
+  margin-top: 10px;
+  font-size: .9em;
+  color: #444;
+  position: relative;
+}
+.OQToolExpander:hover {
+  background-color: #ffd;
+}
+*/
+
+.OQToolExpander {
+  cursor: pointer;
+  font-size: .9em;
+  color: #444;
+  position: relative;
+  margin: 0;
+  padding: 10px;
+}
+.OQToolExpander:hover {
+  background-color: #ffd;
+}
+.OQToolExpander h3 {
+  margin: 0;
+}
+
 
 .OQAddColumnsPanel h1, .OQFilterPanel h1 {
   font-size: 1.4em;
@@ -207,16 +331,36 @@ form.OQform {
   border: 0; 
   background-color: #ddd;
 }
+.OQFilterPanel .rexptypesel {
+  position: relative;
+  width: 200px;
+  margin-top: -11px;
+}
+.OQFilterPanel .rexptypesel input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 180px;
+  z-index: 20;
+}
+.OQFilterPanel .rexptypesel select {
+  position: absolute;
+  z-index: 5;
+  width: 200px;
+  right: 0;
+  z-index: 10;
+  top: 0;
+}
+
+
 
 .LoadingData .OQBlocker, 
 .OQFilterMode .OQBlocker,
-.OQToolsMode .OQBlocker,
 .OQAddColumnsMode .OQBlocker,
 .OQHelpMode .OQBlocker,
 .OQAddColumnsMode .OQAddColumnsPanel,
 .OQFilterMode .OQFilterPanel,
-.OQHelpMode .OQHelpPanel,
-.OQToolsMode .OQToolsPanel {
+.OQHelpMode .OQHelpPanel {
   display: block;
 }
 
@@ -373,6 +517,9 @@ a.OQeditBut {
 }
 .OQStatsBut {
   background-image: url(view-statistics.png);
+}
+.OQToolsCancelBut {
+  position:absolute;right:5px;top:5px;font-size:20px;font-weight:bold;color:#858585;cursor:pointer;height:30px;width:30px;background-color:transparent;font-family:serif;border:0;
 }
 
 .OQdialogs {

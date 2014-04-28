@@ -62,6 +62,7 @@ sub output {
     }
   }
 
+  my $ver = "ver=$CGI::OptimalQuery::VERSION";
   my $buf;
   my $dataonly = $$o{q}->param('dataonly');
   if ($dataonly) {
@@ -77,7 +78,7 @@ sub output {
 <html>
 <head>
 <title>".escapeHTML($o->get_title)."</title>
-<link id=OQIQ2CSS rel=stylesheet type=text/css href='$$o{schema}{resourceURI}/InteractiveQuery2.css'>
+<link id=OQIQ2CSS rel=stylesheet type=text/css href='$$o{schema}{resourceURI}/InteractiveQuery2.css?$ver'>
 <meta name=viewport content='width=device-width, initial-scale=1.0, user-scalable=no'>  
 ".$opts{htmlExtraHead}."</head>
 <body id=OQbody>";
@@ -88,7 +89,7 @@ sub output {
     a.setAttribute('rel','stylesheet');
     a.setAttribute('type','text/css');
     a.setAttribute('id','OQIQ2CSS');
-    a.setAttribute('href','$$o{schema}{resourceURI}/InteractiveQuery2.css');
+    a.setAttribute('href','$$o{schema}{resourceURI}/InteractiveQuery2.css?1');
     document.getElementsByTagName('head')[0].appendChild(a);
   }\n";
     }
@@ -105,9 +106,9 @@ sub output {
     }
 
     $buf = $opts{httpHeader}.$opts{htmlHeader};
-    $buf .= "<script src=$$o{schema}{resourceURI}/jquery.js></script><noscript>Javascript is required when viewing this page.</noscript>" unless $opts{jquery_already_sent};
+    $buf .= "<script src=$$o{schema}{resourceURI}/jquery.js?$ver></script><noscript>Javascript is required when viewing this page.</noscript>" unless $opts{jquery_already_sent};
     $buf .= "
-<script src=$$o{schema}{resourceURI}/InteractiveQuery2.js></script><noscript>Javascript is required when viewing this page.</noscript>
+<script src=$$o{schema}{resourceURI}/InteractiveQuery2.js?$ver></script><noscript>Javascript is required when viewing this page.</noscript>
 <script>
 (function(){
 $script
@@ -146,18 +147,18 @@ $newBut
 </div>
 
 <table class=OQinfo>";
-  $buf .= "<tr class=OQQueryDescr><td class=label>Query:</td><td>".escapeHTML($$o{queryDescr})."</td></tr>" if $$o{queryDescr};
+  $buf .= "<tr class=OQQueryDescr><td class=OQlabel>Query:</td><td>".escapeHTML($$o{queryDescr})."</td></tr>" if $$o{queryDescr};
 
   my $filter = $o->get_filter();
   if ($filter) {
     $buf .= "<tr class=OQFilterDescr title='click to edit filter'";
     $buf .= " data-nofilter" if $opts{disable_filter};
-    $buf .= "><td class=label>Filter:</td><td>".escapeHTML($filter)."</td></tr>";
+    $buf .= "><td class=OQlabel>Filter:</td><td>".escapeHTML($filter)."</td></tr>";
   }
 
   my @sort = $o->{sth}->sort_descr;
   if ($#sort > -1) {
-    $buf .= "<tr class=OQSortDescr><td class=label>Sort:</td><td>";
+    $buf .= "<tr class=OQSortDescr><td class=OQlabel>Sort:</td><td>";
     my $comma = '';
     foreach my $c (@sort) {
       $buf .= $comma;
@@ -235,6 +236,7 @@ $newBut
       $buf .= $opts{OQdataRCol}->($r);
     } elsif ($o->{q}->param('on_select') ne '') {
       my $on_select = $o->{q}->param('on_select');
+      $on_select =~ s/\~.*//;
       my ($func,@argfields) = split /\,/, $on_select;
       $argfields[0] = 'U_ID' if $#argfields==-1;
       my @argvals = map {
@@ -292,6 +294,26 @@ $newBut
   if ($dataonly) {
     $buf .= "</body></html>";
   } else {
+
+    # ouput tools panel
+    my @tools = sort keys %{$$o{schema}{tools}};
+    if ($#tools > -1) {
+      $buf .= "<div class=OQToolsPanel><h2>Tools</h2><ul>";
+      my $opened_tool_key = $$o{q}->param('tool');
+      foreach my $key (sort keys %{$$o{schema}{tools}}) {
+        my $tool = $$o{schema}{tools}{$key};
+
+        my $openedClass = '';
+        my $toolContent = '';
+        if ($opened_tool_key eq $key) {
+          $openedClass = ' opened';
+          $toolContent = "<div class=OQToolContent>".$$tool{handler}->($o)."</div>";
+        }
+        $buf .= "<li data-toolkey='$key' class='OQToolExpander $openedClass'><h3>".escapeHTML($$tool{title})."</h3>$toolContent</li>";
+      }
+      $buf .= "</ul><button class=OQToolsCancelBut type=button>&#10005;</button></div>";
+    }
+
     $buf .= "<div class=OQdocBottom>$opts{OQdocBottom}</div>";
     #$buf .= "<a href=# style='color: #999; float: right;' onclick=\"document.cookie='OQIQ2=;path=/;expires=Thu, 01-Jan-1970 00:00:01 GMT';window.location.reload(true);return false;\">classic mode</a>" if $ENV{HTTP_COOKIE} =~ /\bOQIQ2\=1\b/;
     $buf .= $opts{htmlFooter};
