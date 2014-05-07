@@ -77,21 +77,23 @@ sub execute {
   if ($$sth{oq}{dbtype} eq 'Oracle' &&
       $$sth{'oq'}{'AutoSetLongReadLen'} &&
       scalar(@{$$c{'selected_lobs'}})) {
-    my ($SetLongReadLen) = $$sth{oq}{dbh}->selectrow_array("
-      SELECT greatest(".join(',', 
+
+    my $maxlenlobsql = "SELECT greatest(".join(',',
         map { "nvl(max(DBMS_LOB.GETLENGTH($_)),0)" } @{$$c{'selected_lobs'}}
-      ).")
-      FROM (".$$c{'sql'}.")", undef, @{$$c{'binds'}});
-    $sth->{oq}->{dbh}->{'LongReadLen'} = $SetLongReadLen
-      if $SetLongReadLen > $sth->{oq}->{dbh}->{'LongReadLen'};
+      ).") FROM (".$$c{'sql'}.")";
+
+    my ($SetLongReadLen) = $$sth{oq}{dbh}->selectrow_array($maxlenlobsql, undef, @{$$c{'binds'}});
+
+    if (! $$sth{oq}{dbh}{LongReadLen} || $SetLongReadLen > $$sth{oq}{dbh}{LongReadLen}) {
+      $$sth{oq}{dbh}{LongReadLen} = $SetLongReadLen;
+    }
   }
 
   eval {
     $$sth{oq}{error_handler}->("DEBUG SQL:\n".$c->{sql}."\n\nBINDS:\n".join(',', @{ $c->{binds} })."\n\n") if $$sth{oq}{debug};
-    local $sth->{oq}->{dbh}->{FetchHashKeyName} = 'NAME_uc';
     $c->{sth} = $sth->{oq}->{dbh}->prepare($c->{sql});
     $c->{sth}->execute( @{ $c->{binds} } );
-    my @fieldnames = @{ $c->{sth}->{ $sth->{oq}->{dbh}->{FetchHashKeyName} || 'NAME_uc' } };
+    my @fieldnames = @{ $$c{select_field_order} };
     my %rec;
     my @bindcols = \( @rec{ @fieldnames } );
     $c->{sth}->bind_columns(@bindcols);
@@ -115,7 +117,7 @@ sub add_limit_sql {
     $c->{sql} = "
 SELECT * 
 FROM (
-  SELECT rownum RANK, tablernk1.* 
+  SELECT tablernk1.*, rownum RANK
   FROM (
 ".$c->{sql}."
   ) tablernk1 
@@ -123,6 +125,7 @@ FROM (
 ) tablernk2 
 WHERE tablernk2.RANK >= ? ";
     push @{$$c{binds}}, ( $hi_limit, $lo_limit );
+    push @{$$c{select_field_order}}, "DBIXOQRANK";
   }
 
   # sqlserver doesn't support limit/offset until Sql Server 2012 (which I don't have to test)
@@ -155,6 +158,7 @@ WHERE tablernk2.RANK >= ? ";
 
       # sqlserver doesn't allow placeholders for limit and offset here
       $c->{sql} = "SELECT TOP $limit * FROM (SELECT ROW_NUMBER() OVER ($orderbysql) AS RANK, $sql) tablerank1 WHERE tablerank1.RANK >= $lo_limit";
+      unshift @{$$c{select_field_order}}, "DBIXOQRANK";
     }
   }
 
@@ -275,8 +279,8 @@ sub create_select {
       my $key = 'DBIXOQMJK'.$parent_bind_tag_idx; $parent_bind_tag_idx++;
       my $parent_cursor_idx = $dep_idx->{$dep};
       die "could not find dep: $dep for new cursor" if $parent_cursor_idx eq '';
-      push @{ $sth->{'cursors'}->[$parent_cursor_idx]->{select_sql} },
-        "$dep.$sql $key";
+      push @{ $sth->{'cursors'}->[$parent_cursor_idx]->{select_field_order} }, $key;
+      push @{ $sth->{'cursors'}->[$parent_cursor_idx]->{select_sql} }, "$dep.$sql AS $key";
       push @{ $sth->{'cursors'}->[$i]->{'parent_keys'} }, $key;
     }
     $sth->{'cursors'}->[$i]->{'parent_join'} = $cursor_opts->{'join'};
@@ -316,7 +320,8 @@ sub create_select {
       #$select_sql->[0] = 'to_char('.$select_sql->[0].')';
     }
 
-    push @{ $cursor->{select_sql}   }, $select_sql->[0].' as '.$show;
+    push @{ $cursor->{select_field_order} }, $show;
+    push @{ $cursor->{select_sql} }, $select_sql->[0].' AS '.$show;
     push @{ $cursor->{select_binds} }, @$select_sql[1 .. $#$select_sql];
   }
 
@@ -332,6 +337,7 @@ sub _get_main_cursor_template {
     sql => "",
     binds => [],
     selected_lobs => [],
+    select_field_order => [],
     select_sql => [],
     select_binds => [],
     select_deps => [],
@@ -352,6 +358,7 @@ sub _get_sub_cursor_template {
     sql => "",
     binds => [],
     selected_lobs => [],
+    select_field_order => [],
     select_sql => [],
     select_deps => [],
     select_binds => [],
@@ -557,9 +564,21 @@ sub create_where {
           $fromSql =~ s/^LEFT\s*//i;
           $fromSql =~ s/^OUTER\s*//i;
           $fromSql =~ s/^JOIN\s*//i;
-          $fromSql =~ s/\s*ON\s*\((.*?)\)\s*$//i;
-          my $corelatedJoin = $1; 
 
+          my $corelatedJoin;
+          if ($fromSql =~ /^(.*)\bON\s*\((.*)\)\s*$/i) {
+            $fromSql = $1;
+            $corelatedJoin = $2;
+          } else {
+            die "could not parse for corelated join";
+          }
+
+          if ($token[1]{sql} =~ s/\bNOT\b//) {
+            $preSql .= 'NOT ';
+          } elsif ($token[1]{sql} eq '!=') {
+            $token[1]{sql} = '=';
+            $preSql .= 'NOT ';
+          }
           $preSql  .= 'EXISTS ( SELECT 1 FROM '.$fromSql.' WHERE ('.$corelatedJoin.') AND ';
           $postSql .= ')';
           push @preBinds, @fromBinds;
@@ -880,8 +899,6 @@ WHERE $where_sql ";
         if $SetLongReadLen > $sth->{oq}->{dbh}->{'LongReadLen'};
     }
 
-
-    local $sth->{oq}->{dbh}->{FetchHashKeyName} = 'NAME_uc';
     $c->{sth} = $sth->{oq}->{dbh}->prepare($c->{sql});
   }
   $$sth{oq}{error_handler}->("DEBUG: cursors-\n".Dumper($sth->{cursors})."\n") if $$sth{oq}{debug};
@@ -921,9 +938,9 @@ sub fetchrow_hashref  {
       $c->{sth}->execute( @{ $c->{binds} }, 
         map { $$rec{$_} } @{ $c->{parent_keys} } );
 
-      # for some reason when I call fetchrowhashref perl crashes hard
-      my $cols = $c->{sth}->{NAME_uc};
+      my $cols = $$c{select_field_order};
       @$rec{ @$cols } = [];
+
       while (my @vals = $c->{sth}->fetchrow_array()) {
         for (my $i=0; $i <= $#$cols; $i++) {
           push @{ $$rec{$$cols[$i]} }, $vals[$i];
@@ -1193,8 +1210,8 @@ float:
  | /\-?\d+\.?\d*/
 
 quotedString:
-   /'.*?(?<!\\)'/
- | /".*?(?<!\\)"/
+   /'.*?'/
+ | /".*?"/
 
 compOp:
    '<=' | '>=' | '=' | '!=' | '<' | '>' |
@@ -1492,6 +1509,8 @@ sub type_map {
   -4 => 'clob',
   -5 => 'num',
   -6 => 'num',
+  -9 => 'char',
+  0 => 'char',
   1 => 'char',
   3 => 'num',    # is decimal type
   4 => 'num',
@@ -1638,7 +1657,6 @@ LIMIT 0 ";
     eval {
       local $oq->{dbh}->{PrintError} = 0;
       local $oq->{dbh}->{RaiseError} = 1;
-      local $oq->{dbh}->{FetchHashKeyName} = 'NAME_uc';
       $sth = $oq->{dbh}->prepare($sql);
       $sth->execute(@binds);
     }; if ($@) {
@@ -1650,6 +1668,10 @@ LIMIT 0 ";
     for (my $i=0; $i < scalar(@selectColAliasOrder); $i++) {
       my $name = $selectColAliasOrder[$i];
       my $type_code = $sth->{TYPE}->[$i];
+
+      # remove parenthesis in type_code from sqlite
+      $type_code =~ s/\([^\)]*\)//;
+ 
       my $type = $type_map->{$type_code} or 
         die "could not find type code: $type_code for col $name";
       $oq->{'col_types'}->{$selectColTypeOrder[$i]}->{$name} = $type;

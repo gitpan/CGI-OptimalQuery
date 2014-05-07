@@ -116,6 +116,25 @@ $script
 </script><noscript>Javascript is required when viewing this page.</noscript>";
     $buf .= "
 <div class=OQdocTop>$opts{OQdocTop}</div>";
+
+    # ouput tools panel
+    my @tools = sort keys %{$$o{schema}{tools}};
+    if ($#tools > -1) {
+      $buf .= "<div class=OQToolsPanel-pos-div><div class=OQToolsPanel-align-div><div class=OQToolsPanel><ul>";
+      my $opened_tool_key = $$o{q}->param('tool');
+      foreach my $key (sort keys %{$$o{schema}{tools}}) {
+        my $tool = $$o{schema}{tools}{$key};
+
+        my $openedClass = '';
+        my $toolContent = '';
+        if ($opened_tool_key eq $key) {
+          $openedClass = ' opened';
+          $toolContent = "<div class=OQToolContent>".$$tool{handler}->($o)."</div>";
+        }
+        $buf .= "<li data-toolkey='$key' class='OQToolExpander $openedClass'><h3>".escapeHTML($$tool{title})."</h3>$toolContent</li>";
+      }
+      $buf .= "</ul><button class=OQToolsCancelBut type=button>&#10005;</button></div></div></div>";
+    }
   }
   $buf .= "
 <form class=OQform name=OQform action='".escapeHTML($$o{schema}{URI_standalone}||$$o{schema}{URI})."' method=get>
@@ -221,7 +240,11 @@ $newBut
     foreach my $col (@{ $o->get_usersel_cols }) {
       my $val;
       if (exists $noEsc{$col}) {
-        $val = $$r{$col};  
+        if (ref($$r{$col}) eq 'ARRAY') {
+          $val = join(' ', @{ $$r{$col} });  
+        } else {
+          $val = $$r{$col};
+        }
       } elsif (ref($$r{$col}) eq 'ARRAY') {
         $val = join(', ', map { escapeHTML($_) } @{ $$r{$col} }); 
       } else {
@@ -294,25 +317,6 @@ $newBut
   if ($dataonly) {
     $buf .= "</body></html>";
   } else {
-
-    # ouput tools panel
-    my @tools = sort keys %{$$o{schema}{tools}};
-    if ($#tools > -1) {
-      $buf .= "<div class=OQToolsPanel><h2>Tools</h2><ul>";
-      my $opened_tool_key = $$o{q}->param('tool');
-      foreach my $key (sort keys %{$$o{schema}{tools}}) {
-        my $tool = $$o{schema}{tools}{$key};
-
-        my $openedClass = '';
-        my $toolContent = '';
-        if ($opened_tool_key eq $key) {
-          $openedClass = ' opened';
-          $toolContent = "<div class=OQToolContent>".$$tool{handler}->($o)."</div>";
-        }
-        $buf .= "<li data-toolkey='$key' class='OQToolExpander $openedClass'><h3>".escapeHTML($$tool{title})."</h3>$toolContent</li>";
-      }
-      $buf .= "</ul><button class=OQToolsCancelBut type=button>&#10005;</button></div>";
-    }
 
     $buf .= "<div class=OQdocBottom>$opts{OQdocBottom}</div>";
     #$buf .= "<a href=# style='color: #999; float: right;' onclick=\"document.cookie='OQIQ2=;path=/;expires=Thu, 01-Jan-1970 00:00:01 GMT';window.location.reload(true);return false;\">classic mode</a>" if $ENV{HTTP_COOKIE} =~ /\bOQIQ2\=1\b/;
