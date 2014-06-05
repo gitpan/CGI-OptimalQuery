@@ -8,7 +8,7 @@ use CGI();
 BEGIN {
     use Exporter ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-    $VERSION     = '0.07';
+    $VERSION     = '0.08';
     @ISA         = qw(Exporter);
     #Give a hoot don't pollute, do not export more than needed by default
     @EXPORT      = qw();
@@ -540,7 +540,7 @@ override httpHeader content. If you prefer to not have InteractiveQuery send the
     # add html links to the person record 
     # if user selected the NAME field
     if (exists $$rec{NAME}) {
-      $$rec{NAME} = "<A HREF=/PersonRecord?id=$$$rec{ID}>".
+      $$rec{NAME} = "<A HREF=/PersonRecord?id=$$rec{ID}>".
         CGI::escapeHTML($$rec{NAME})."</A>";
     }
   }

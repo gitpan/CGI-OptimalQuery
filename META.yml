@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               CGI-OptimalQuery
-version:            0.07
+version:            0.08
 abstract:           rich HTML viewer for your SQL select queries
 author:
     - Philip Collins (Philip.Collins@unh.edu)
