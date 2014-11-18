@@ -40,13 +40,27 @@ sub output {
   $opts{noEscapeCol}    ||= [];
   $opts{editLink}       ||= undef;
   $opts{htmlExtraHead}  ||= "";
+  if (! exists $opts{usePopups}) {
+    $opts{usePopups}=1;
+  } else {
+    $opts{usePopups}=($opts{usePopups}) ? 1 : 0;
+  }
+  if (! exists $opts{useAjax}) {
+    $opts{useAjax} = $opts{usePopups};
+  } else {
+    $opts{useAjax}=($opts{useAjax}) ? 1 : 0;
+  }
+
   $opts{httpHeader} = $$o{q}->header(-type=>'text/html',-expires=>'now')
     unless exists $opts{httpHeader};
   $opts{htmlFooter} = "</body>\n</html>\n"
     unless exists $opts{htmlFooter};
 
   my $newBut;
-  if (ref($opts{buildNewLink}) eq 'CODE') {
+  if ($opts{NewButton}) {
+    $newBut = (ref($opts{NewButton}) eq 'CODE') ? $opts{NewButton}->($o, \%opts) : $opts{NewButton};
+  }
+  elsif (ref($opts{buildNewLink}) eq 'CODE') {
     my $link = $opts{buildNewLink}->($o, \%opts);
     if ($link ne '') {
       my $target = uc($link); $target =~ s/\W//g;
@@ -71,6 +85,8 @@ sub output {
     my $script;
     $script .= "window.OQWindowHeight=$opts{WindowHeight};\n" if $opts{WindowHeight};
     $script .= "window.OQWindowWidth=$opts{WindowWidth};\n" if $opts{WindowWidth};
+    $script .= "window.OQuseAjax=$opts{useAjax};\n";
+    $script .= "window.OQusePopups=$opts{usePopups};\n";
 
     if (! exists $opts{htmlHeader}) {
       $opts{htmlHeader} =
@@ -319,7 +335,6 @@ $newBut
   } else {
 
     $buf .= "<div class=OQdocBottom>$opts{OQdocBottom}</div>";
-    #$buf .= "<a href=# style='color: #999; float: right;' onclick=\"document.cookie='OQIQ2=;path=/;expires=Thu, 01-Jan-1970 00:00:01 GMT';window.location.reload(true);return false;\">classic mode</a>" if $ENV{HTTP_COOKIE} =~ /\bOQIQ2\=1\b/;
     $buf .= $opts{htmlFooter};
   }
 

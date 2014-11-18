@@ -8,7 +8,7 @@ use CGI();
 BEGIN {
     use Exporter ();
     use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
-    $VERSION     = '0.11';
+    $VERSION     = '0.12';
     @ISA         = qw(Exporter);
     #Give a hoot don't pollute, do not export more than needed by default
     @EXPORT      = qw();
@@ -19,12 +19,13 @@ BEGIN {
 
 # module registry - when loading a sub module, the module CGI param is
 # consulted, and the value is loaded as a module.
-my $default_module = 'InteractiveQuery';
-my %modules = (
+our $DEFAULT_MODULE = 'InteractiveQuery2';
+
+our %DEFAULT_MODULES = (
   'PrinterFriendly'   => 'CGI::OptimalQuery::PrinterFriendly',
   'CSV'               => 'CGI::OptimalQuery::CSV',
   'InteractiveFilter' => 'CGI::OptimalQuery::InteractiveFilter',
-  'InteractiveQuery'  => 'CGI::OptimalQuery::InteractiveQuery2',
+  'InteractiveQuery'  => 'CGI::OptimalQuery::InteractiveQuery',
   'XML'               => 'CGI::OptimalQuery::XML',
   'InteractiveQuery2' => 'CGI::OptimalQuery::InteractiveQuery2',
   'InteractiveFilter2' => 'CGI::OptimalQuery::InteractiveFilter2',
@@ -57,8 +58,8 @@ sub new {
   $$schema{error_handler}  ||= sub { print STDERR @_; 0; };
 
   # find module & class
-  my $module = $$schema{q}->param('module') || $$schema{module} || $default_module;
-  my $class = $$schema{modules}{$module} || $modules{$module};
+  my $module = $$schema{q}->param('module') || $$schema{module} || $DEFAULT_MODULE;
+  my $class = $$schema{modules}{$module} || $DEFAULT_MODULES{$module};
 
   # dynamically load class
   my $rv = eval "require $class";
@@ -500,6 +501,12 @@ Append additional HTML in the head section.
 
 specify the background color of the optimal query GUI.
 
+=item B<< useAjax => 1 >>
+
+Reload the data using ajax. Defaults to 1 unless not specified and usePopups is set to 0.
+
+=item B<< NewButton => "<a href=record.pl class=OQnewBut>new</a>" >>
+
 =item B<< editButtonLabel => 'edit' >>
 
 =item B<< editLink => '/link/to/record' >>
@@ -550,6 +557,10 @@ Specify custom code to print the first or last column element. This is most ofte
 =item B<< OQformBottom => "bottom of form" >>
 
 =item B<< OQformTop => "top of form" >>
+
+=item B<< usePopups => 1|0 >>
+
+use popups when opening a record form using the built in buttons The default is 1. If this is set to 1, useAjax default is 1.
 
 =item B<< WindowHeight => INT >>
 
